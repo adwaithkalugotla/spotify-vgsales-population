@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>D3 Histogram</title>
+
+
+  <!-- Load D3 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <!-- Load THIS chart's script (not dashboard.js) -->
+  <script defer src="js/script.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/histogram-Hkn3h0o5.css">
+</head>
+<body>
+  <select id="metric">
+    <option value="danceability_%" selected>Danceability</option>
+    <option value="energy_%">Energy</option>
+    <option value="valence_%">Valence</option>
+    <option value="bpm">BPM</option>
+  </select>
+
+  <div id="chart"></div>
+</body>
+</html>
