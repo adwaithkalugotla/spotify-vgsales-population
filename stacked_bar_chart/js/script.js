@@ -4,12 +4,27 @@ async function draw() {
 
   d3.select("#chart").selectAll("svg").remove();
 
-  const data = await d3.csv("/datasets/US States Ranked by Population 2024.csv", d3.autoType);
-  if (!data?.length) return;
+  // Load + autoType
+  const raw = await d3.csv(
+    "/datasets/US States Ranked by Population 2024.csv",
+    d3.autoType
+  );
+  if (!raw?.length) return;
 
-  const cols = data.columns;
+  // Columns
+  const cols = raw.columns || Object.keys(raw[0] ?? {});
   const stateCol = cols[0];      // first column = state name (usually)
-  const keys = cols.slice(1);    // the stacked categories
+  const keys = cols.slice(1);    // stacked numeric columns
+
+  // Force numeric safety (prevents NaN/negative heights)
+  const data = raw.map(row => {
+    const out = { ...row };
+    keys.forEach(k => {
+      const v = row[k];
+      out[k] = (v == null || v === "" || Number.isNaN(v)) ? 0 : +v;
+    });
+    return out;
+  });
 
   const { width, height } = el.getBoundingClientRect();
   const w = Math.max(340, width || 760);
@@ -19,25 +34,29 @@ async function draw() {
   const innerW = w - margin.left - margin.right;
   const innerH = h - margin.top - margin.bottom;
 
-  const svg = d3.select("#chart")
+  const svg = d3
+    .select("#chart")
     .append("svg")
     .attr("viewBox", `0 0 ${w} ${h}`)
     .style("width", "100%")
     .style("height", "100%");
 
-  const g = svg.append("g")
+  const g = svg
+    .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   const stack = d3.stack().keys(keys)(data);
 
-  const xScale = d3.scaleBand()
+  const xScale = d3
+    .scaleBand()
     .domain(data.map(d => d[stateCol]))
     .range([0, innerW])
     .padding(0.12);
 
   const yMax = d3.max(stack, layer => d3.max(layer, d => d[1])) || 1;
 
-  const yScale = d3.scaleLinear()
+  const yScale = d3
+    .scaleLinear()
     .domain([0, yMax])
     .range([innerH, 0])
     .nice();
@@ -54,11 +73,12 @@ async function draw() {
     .attr("class", "layer")
     .attr("fill", d => color(d.key))
     .selectAll("rect")
-    .data(d => d.map(v => ({ ...v, key: d.key })))
+    .data(layer => layer.map(v => ({ ...v, key: layer.key })))
     .join("rect")
     .attr("x", d => xScale(d.data[stateCol]))
     .attr("y", d => yScale(d[1]))
-    .attr("height", d => yScale(d[0]) - yScale(d[1]))
+    // IMPORTANT: ensure non-negative numeric heights
+    .attr("height", d => Math.max(0, yScale(d[0]) - yScale(d[1])))
     .attr("width", xScale.bandwidth())
     .on("mousemove", (event, d) => {
       const segmentValue = d[1] - d[0];
